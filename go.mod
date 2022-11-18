@@ -1,4 +1,4 @@
-module mongosync
+module github.com/sherweb/mongosync
 
 go 1.19
 
