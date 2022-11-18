@@ -13,7 +13,6 @@ import (
 )
 
 func copy_handler(cmd *cobra.Command, args []string) {
-	// Do Stuff Here
 	sourceUri, _ := cmd.Flags().GetString("source")
 	destinationUri, _ := cmd.Flags().GetString("destination")
 	fmt.Printf("Connecting to source mongodb instance: %s\n", sourceUri)
