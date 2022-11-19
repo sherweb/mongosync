@@ -24,7 +24,7 @@ mongosync requires **go 1.19**, you can download go here: [Downloads - The Go Pr
 
 Then, do this:
 
-    #> go install github.com/sherweb/mongosync
+    #> go install github.com/sherweb/mongosync@v1.0.0
 
 Test with this:
 
