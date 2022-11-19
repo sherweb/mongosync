@@ -61,14 +61,12 @@ func copy_col(dbName string, colName string, source *mongo.Client, dest *mongo.C
 	}
 
 	if !db_exists(dbName, dest) {
-		fmt.Printf("[DEST] Database: %s, Collection: %s db&col do not exist, creating\n", dbName, colName)
 		err := dest.Database(dbName).CreateCollection(context.TODO(), colName)
 		if err != nil {
 			fmt.Printf("Error creating collection: %s\n", colName)
 			panic(err)
 		}
 	} else if (!col_exists(dbName, colName, dest)) {
-		fmt.Printf("[DEST] Database: %s, Collection: %s, col does not exist, creating\n", dbName, colName)
 		err := dest.Database(dbName).CreateCollection(context.TODO(), colName)
 		if err != nil {
 			fmt.Printf("Error creating collection: %s\n", colName)
