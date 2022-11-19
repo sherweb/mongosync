@@ -11,12 +11,13 @@ It does **not** delete any data if it is deleted in the source database.
 | Differential Document Creation | :heavy_check_mark:|
 | Single DB Scope | :heavy_check_mark: |
 | Single Collection Scope | :heavy_check_mark: |
-| Batch Uploads | :heavy_check_mark: |
+| Batch Uploads | :heavy_check_mark: | Every Insert or Replace requests is batched |
 | Custom IDs (including objects) | :heavy_check_mark: |
 | Multi-threaded processing | :heavy_check_mark: |
 | Deleted Items Removal | :x: |
-| Change Feeds | :x: | MongoDB only supports this on replica sets
-| Replica Sets | :x: | Not built in, probably easy to implement
+| Change Feeds | :x: | MongoDB only supports this on replica sets |
+| Replica Sets | :x: | Not built in, probably easy to implement |
+| Indexes | :x: | Planned ! |
 
 ## Installation 
 
