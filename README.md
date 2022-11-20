@@ -62,7 +62,7 @@ You can add copy of indexes by adding the `-i` switch to any command. When using
 
     $> mongosync copy -i --source mongodb://user:pass@url:port --destination mongodb://user:pass@url:port
 
-Index copy doesn't copy the index ID and does not diff-copies indexes if they have been modified in either the source or destination.
+Index copy doesn't copy the default index (the `_id_` one) and does not diff-copies indexes if they have been modified in either the source or destination.
 
 ## Contributing
 
