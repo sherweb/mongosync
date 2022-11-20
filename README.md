@@ -58,11 +58,11 @@ To copy a specific collection inside a database
 
     $> mongosync copy --source mongodb://user:pass@url:port --destination mongodb://user:pass@url:port --database DATABASE_NAME --collection COLLECTION_NAME
 
-You can add copy of indexes by adding the `-i` switch to any command. Example:
+You can add copy of indexes by adding the `-i` switch to any command. When using the -i switch, it does **not** disable the normal copy of data, so databases and collections still get diff-copied. Example:
 
-    $> mongosync copy -i --source mongodb://user:pass@url:port --destination mongodb://user:pass@url:port --database DATABASE_NAME --collection COLLECTION_NAME
+    $> mongosync copy -i --source mongodb://user:pass@url:port --destination mongodb://user:pass@url:port
 
-Index copy doesn't copy the index ID and does not diff-copies indexes if they have been modified in either the source or destination
+Index copy doesn't copy the index ID and does not diff-copies indexes if they have been modified in either the source or destination.
 
 ## Contributing
 
