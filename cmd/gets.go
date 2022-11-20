@@ -41,3 +41,19 @@ func get_collections(dbName string, client *mongo.Client) []string {
 	return collections
 }
 
+func get_indexes(dbName string, colName string, client *mongo.Client) []bson.M {
+	cur, err := client.Database(dbName).Collection(colName).Indexes().List(context.TODO())
+	if err != nil {
+		panic(err)
+	}
+	var indexes []bson.M
+	for cur.Next(context.TODO()) {
+		var elem bson.M
+		err := cur.Decode(&elem)
+		if err != nil {
+			panic(err)
+		}
+		indexes = append(indexes, elem)
+	}
+	return indexes
+}

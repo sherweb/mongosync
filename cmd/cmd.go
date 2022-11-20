@@ -30,6 +30,7 @@ func init() {
 	copyCmd.Flags().StringP("destination", "d", "", "destination mongodb instance")
 	copyCmd.Flags().StringP("database", "", "", "database to copy")
 	copyCmd.Flags().StringP("collection", "", "", "collection to copy")
+	copyCmd.Flags().BoolP("indexes", "i", false, "copy indexes")
 	copyCmd.MarkFlagRequired("source")
 	copyCmd.MarkFlagRequired("destination")
 }

@@ -14,10 +14,10 @@ It does **not** delete any data if it is deleted in the source database.
 | Batch Uploads | :heavy_check_mark: | Every Insert or Replace requests is batched |
 | Custom IDs (including objects) | :heavy_check_mark: |
 | Multi-threaded processing | :heavy_check_mark: |
+| Indexes | :heavy_check_mark: | Fully supported |
 | Deleted Items Removal | :x: |
 | Change Feeds | :x: | MongoDB only supports this on replica sets |
 | Replica Sets | :x: | Not built in, probably easy to implement |
-| Indexes | :x: | Planned ! |
 
 ## Installation 
 
@@ -25,7 +25,7 @@ mongosync requires **go 1.19**, you can download go here: [Downloads - The Go Pr
 
 Then, do this:
 
-    #> go install github.com/sherweb/mongosync@v1.1.0
+    #> go install github.com/sherweb/mongosync@v1.2.0
 
 Test with this:
 
@@ -57,6 +57,12 @@ To copy a specific database, but all collections
 To copy a specific collection inside a database
 
     $> mongosync copy --source mongodb://user:pass@url:port --destination mongodb://user:pass@url:port --database DATABASE_NAME --collection COLLECTION_NAME
+
+You can add copy of indexes by adding the `-i` switch to any command. Example:
+
+    $> mongosync copy -i --source mongodb://user:pass@url:port --destination mongodb://user:pass@url:port --database DATABASE_NAME --collection COLLECTION_NAME
+
+Index copy doesn't copy the index ID and does not diff-copies indexes if they have been modified in either the source or destination
 
 ## Contributing
 
