@@ -89,7 +89,7 @@ func copy_col(cmd *cobra.Command, dbName string, colName string, source *mongo.C
 		if !exists && !match {
 			models = append(models, mongo.NewInsertOneModel().SetDocument(elem))
 		} else if exists && !match {
-			models = append(models, mongo.NewReplaceOneModel().SetFilter(bson.D{{"_id", elem.Map()["_id"]}}).SetReplacement(elem))
+			models = append(models, mongo.NewReplaceOneModel().SetFilter(bson.D{{Key: "_id", Value: elem.Map()["_id"]}}).SetReplacement(elem))
 		}
 	}
 
