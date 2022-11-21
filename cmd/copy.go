@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/spf13/cobra"
 	"go.mongodb.org/mongo-driver/bson"
@@ -50,6 +51,9 @@ func copy_db(cmd *cobra.Command, dbName string, source *mongo.Client, dest *mong
 	for _, collection := range collections {
 		copy_col(cmd, dbName, collection, source, dest)
 	}
+	
+	time.Sleep(time.Second * 1)
+
 	defer wg.Done()
 }
 
