@@ -12,7 +12,10 @@ var rootCmd = &cobra.Command{
 	Short: "mongosync is an utility to sync two different mongodb instances",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		cmd.Help()
+		err := cmd.Help()
+		if err != nil {
+			panic(err)
+		}
 		os.Exit(0)
 	},
 }
@@ -31,8 +34,14 @@ func init() {
 	copyCmd.Flags().StringP("database", "", "", "database to copy")
 	copyCmd.Flags().StringP("collection", "", "", "collection to copy")
 	copyCmd.Flags().BoolP("indexes", "i", false, "copy indexes")
-	copyCmd.MarkFlagRequired("source")
-	copyCmd.MarkFlagRequired("destination")
+	err := copyCmd.MarkFlagRequired("source")
+	if err != nil {
+		panic(err)
+	}
+	err := copyCmd.MarkFlagRequired("destination")
+	if err != nil {
+		panic(err)
+	}
 }
 
 func Execute() {
