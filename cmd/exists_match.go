@@ -30,7 +30,7 @@ func col_exists(dbName string, colName string, client *mongo.Client) bool {
 }*/
 
 func doc_exists_and_match(dbName string, colName string, doc bson.D, client *mongo.Client) (bool, bool) {
-	q := bson.D{{"_id", doc.Map()["_id"]}}
+	q := bson.D{{Key: "_id", Value: doc.Map()["_id"]}}
 	
 	res := client.Database(dbName).Collection(colName).FindOne(context.TODO(), q)
 	if res.Err() != nil {
