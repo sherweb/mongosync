@@ -19,7 +19,7 @@ func col_exists(dbName string, colName string, client *mongo.Client) bool {
 	return contains(cols, colName)
 }
 
-func doc_exists(dbName string, colName string, doc_id string, client *mongo.Client) bool {
+/*func doc_exists(dbName string, colName string, doc_id string, client *mongo.Client) bool {
 	res := client.Database(dbName).Collection(colName).FindOne(context.TODO(), bson.M{"_id": doc_id})
 	if res.Err() != nil {
 		return true
@@ -27,17 +27,20 @@ func doc_exists(dbName string, colName string, doc_id string, client *mongo.Clie
 		return true
 	}
 	
-}
+}*/
 
 func doc_exists_and_match(dbName string, colName string, doc bson.D, client *mongo.Client) (bool, bool) {
-	q := bson.D{{"_id", doc.Map()["_id"]}}
+	q := bson.D{{Key: "_id", Value: doc.Map()["_id"]}}
 	
 	res := client.Database(dbName).Collection(colName).FindOne(context.TODO(), q)
 	if res.Err() != nil {
 		return false, false
 	} else {
 		var result bson.D
-		res.Decode(&result)
+		err := res.Decode(&result)
+		if err != nil {
+			panic(err)
+		}
 		return true, reflect.DeepEqual(doc.Map(), result.Map())
 	}
 }
