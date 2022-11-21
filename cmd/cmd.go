@@ -38,7 +38,7 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	err := copyCmd.MarkFlagRequired("destination")
+	err = copyCmd.MarkFlagRequired("destination")
 	if err != nil {
 		panic(err)
 	}
