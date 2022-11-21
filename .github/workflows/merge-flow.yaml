@@ -1,0 +1,36 @@
+name: CI for Merge on master/main
+
+on:
+  push:
+    tags:
+      - v*
+    branches: [ master, main ]
+
+jobs:
+  golangci-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.29
+
+  build-push:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: 1.16
+
+    - name: Build
+      run: go build -o bin/MongoSync
+
+    - name: Push
+      uses: actions/upload-artifact@v2
+      if: success()
+      with:
+        name: MongoSync
+        path: bin/MongoSync
