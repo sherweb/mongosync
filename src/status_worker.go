@@ -14,7 +14,7 @@ type Counters struct {
 	Indexes      *int64
 }
 
-func StatusWorker(c *Counters, quit chan bool, refresh_rate int) {
+func StatusWorker(c *Counters, quit chan bool, refresh_rate int, state *WorkerState, cfg *RootConfig) {
 
 	start := time.Now()
 	for {
@@ -24,7 +24,7 @@ func StatusWorker(c *Counters, quit chan bool, refresh_rate int) {
 		default:
 			t := time.Since(start).Seconds()
 
-			fmt.Printf("DBs: %d, Collections: %d, SourceItems: %d (%02.f/s), CopyingItems: %d, CopiedItems: %d (%02.f/s), Indexes: %d\r", *c.DBs, *c.Collections, *c.SourceItems, (float64(*c.SourceItems) / t), (*c.CopyingItems - *c.CopiedItems), *c.CopiedItems, (float64(*c.CopiedItems) / t), *c.Indexes)
+			fmt.Printf("Active Workers: %d/%d, Indexes: %d, SourceItems: %d (%02.f/s), CopyingItems: %d, CopiedItems: %d (%02.f/s)\r", state.Active, cfg.MaxWorkers, *c.Indexes, *c.SourceItems, (float64(*c.SourceItems) / t), (*c.CopyingItems - *c.CopiedItems), *c.CopiedItems, (float64(*c.CopiedItems) / t))
 
 			time.Sleep(time.Duration(refresh_rate) * time.Millisecond)
 		}

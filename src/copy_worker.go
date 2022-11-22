@@ -1,6 +1,7 @@
 package src
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -21,6 +22,9 @@ type WorkerQueue struct {
 }
 
 func (wq *WorkerQueue) GetNextWorker() *ColCopyWorker {
+	if wq.Current >= len(wq.Workers) {
+		return nil
+	}
 	w := wq.Workers[wq.Current]
 	wq.Current++
 	return w
@@ -29,7 +33,7 @@ func (wq *WorkerQueue) GetNextWorker() *ColCopyWorker {
 func (wq *WorkerQueue) Run(cfg *RootConfig) {
 	statusDoneChan := make(chan bool)
 
-	go StatusWorker(wq.Counters, statusDoneChan, cfg.RefreshRate)
+	go StatusWorker(wq.Counters, statusDoneChan, cfg.RefreshRate, wq.State, cfg)
 
 	for {
 		select {
@@ -38,9 +42,22 @@ func (wq *WorkerQueue) Run(cfg *RootConfig) {
 			return
 		default:
 			if wq.State.Active < cfg.MaxWorkers {
-				wq.RunWorker(wq.GetNextWorker(), wq.Counters)
+				nw := wq.GetNextWorker()
+				if nw != nil {
+					go wq.RunWorker(nw, wq.Counters)
+				} else {
+					if wq.State.Active == 0 {
+						time.Sleep(50 * time.Millisecond)
+						statusDoneChan <- true
+						time.Sleep(500 * time.Millisecond)
+						fmt.Println("")
+						fmt.Println("All workers are done")
+
+						return
+					}
+				}
 			}
-			time.Sleep(time.Millisecond * 50)
+			time.Sleep(time.Millisecond * 5)
 		}
 	}
 
@@ -58,7 +75,6 @@ func (wq *WorkerQueue) RunWorker(w *ColCopyWorker, c *Counters) {
 }
 
 func Copy(cfg *RootConfig, dbc *DBConnector) {
-
 	state := &WorkerState{
 		Active: 0,
 	}
@@ -119,7 +135,8 @@ func Copy(cfg *RootConfig, dbc *DBConnector) {
 				DST: destColConn,
 				DBName: db.Name,
 				ColName: col.Name,
-				Config: &col,
+				Config: col,
+				BatchSize: col.BatchSize,
 			}
 
 			queue.Workers = append(queue.Workers, cw)
