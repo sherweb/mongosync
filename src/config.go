@@ -39,6 +39,7 @@ type ColConfig struct {
 	BatchSize int `yaml:"batch_size"`
 	CopyIndexes bool `yaml:"copy_indexes"`
 	Enabled bool `yaml:"enabled"`
+	SourceBatchSize int `yaml:"source_batch_size"`
 	UseSeparateConnection bool `yaml:"use_separate_connection"`
 }
 
@@ -72,6 +73,7 @@ func GetBaseColConfig() ColConfig {
 		RenameTo: "",
 		TotalCount: 0,
 		BatchSize: 0,
+		SourceBatchSize: 0,
 		CopyIndexes: true,
 		UseSeparateConnection: false,
 		Enabled: true,
