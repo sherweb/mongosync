@@ -39,9 +39,21 @@ func (cw *ColCopyWorker) GetDocCount(db *mongo.Database) int64 {
 func (cw *ColCopyWorker) Copy(c *Counters) {
 	cfg := cw.Config
 
-	cur, err := cw.SRC.Find(context.TODO(), bson.D{})
-	if err != nil {
-		panic(err)
+	var cur *mongo.Cursor
+
+	if (cw.Config.SourceBatchSize > 0) {
+		options := options.Find().SetBatchSize(int32(cw.Config.SourceBatchSize))
+		cursor, err := cw.SRC.Find(context.TODO(), bson.D{}, options)
+		if err != nil {
+			panic(err)
+		}
+		cur = cursor
+	} else {
+		cursor, err := cw.SRC.Find(context.TODO(), bson.D{})
+		if err != nil {
+			panic(err)
+		}
+		cur = cursor
 	}
 
 	models := []mongo.WriteModel{}
