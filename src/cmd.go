@@ -1,4 +1,4 @@
-package cmd
+package src
 
 import (
 	"fmt"
@@ -27,12 +27,28 @@ var copyCmd = &cobra.Command{
 	Run: copy_handler,
 }
 
+var generateConfigCmd = &cobra.Command{
+	Use:   "generate-config",
+	Short: "generate a config file",
+	Long:  ``,
+	Run: func(cmd *cobra.Command, args []string) {
+		sourceUri, _ := cmd.Flags().GetString("source")
+		destinationUri, _ := cmd.Flags().GetString("destination")
+		GenerateConfig(cmd, sourceUri, destinationUri)
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(copyCmd)
+	rootCmd.AddCommand(generateConfigCmd)
 	copyCmd.Flags().StringP("source", "s", "", "source mongodb instance")
 	copyCmd.Flags().StringP("destination", "d", "", "destination mongodb instance")
+	copyCmd.Flags().StringP("config", "c", "", "config file location")
+	generateConfigCmd.Flags().StringP("source", "s", "", "source mongodb instance")
+	generateConfigCmd.Flags().StringP("destination", "d", "", "destination mongodb instance")
 	copyCmd.Flags().StringP("database", "", "", "database to copy")
 	copyCmd.Flags().StringP("collection", "", "", "collection to copy")
+	copyCmd.Flags().IntP("batchsize", "b", 1000, "batch size")
 	copyCmd.Flags().BoolP("indexes", "i", false, "copy indexes")
 	err := copyCmd.MarkFlagRequired("source")
 	if err != nil {

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/sherweb/mongosync/cmd"
+	cmd "github.com/sherweb/mongosync/src"
 )
 
 func main() {
