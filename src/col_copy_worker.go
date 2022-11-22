@@ -19,6 +19,7 @@ type ColCopyWorker struct {
 	Done bool
 	Logs []string
 	Config *ColConfig
+	BatchSize int
 }
 
 func (cw *ColCopyWorker) ColCopyWorker() {
@@ -38,17 +39,6 @@ func (cw *ColCopyWorker) GetDocCount(db *mongo.Database) int64 {
 func (cw *ColCopyWorker) Copy(c *Counters) {
 	cfg := cw.Config
 
-
-	/**
-	if (!col_exists(dbName, colName, dest)) {
-		err := dest.Database(dbName).CreateCollection(context.TODO(), colName)
-		if err != nil {
-			fmt.Printf("Error creating collection: %s\n", colName)
-			panic(err)
-		}
-	}
-	**/
-
 	cur, err := cw.SRC.Find(context.TODO(), bson.D{})
 	if err != nil {
 		panic(err)
@@ -60,6 +50,7 @@ func (cw *ColCopyWorker) Copy(c *Counters) {
 	
 
 	for cur.Next(context.TODO()) {
+		atomic.AddInt64(c.SourceItems, 1)
 		var elem bson.D
 		err := cur.Decode(&elem)
 		if err != nil {
@@ -93,17 +84,53 @@ func (cw *ColCopyWorker) Copy(c *Counters) {
 
 	opts := options.BulkWrite().SetOrdered(true)
 	if (len(models) > 0) {
+		atomic.AddInt64(c.CopyingItems, int64(len(models)))
 		cw.Logs = append(cw.Logs, fmt.Sprintf("[DEST] DB: %s, COL: %s, SRC ITEMS %d, Updating %d items..\n", cw.DBName, cw.ColName, cw.SRCDocCount, len(models)))
 		_, ierr := cw.DST.BulkWrite(context.TODO(), models, opts)
 		if ierr != nil {
 			fmt.Println(ierr)
 		}
+		atomic.AddInt64(c.CopiedItems, int64(len(models)))
 	} else {
 		cw.Logs = append(cw.Logs, fmt.Sprintf("[DEST] DB: %s, COL: %s, SRC ITEMS %d, No updates required\n", cw.DBName, cw.ColName, cw.SRCDocCount))
 	}
 
-	//if (cmd.Flags().Changed("indexes")) {
-	//	copy_index(dbName, colName, source, dest)
-	//}
+	if cfg.CopyIndexes == true {
+		copy_index(cw.SRC, cw.DST, c)
+	}
 	cw.Done = true
+}
+
+func copy_index(src *mongo.Collection, dst *mongo.Collection, c *Counters) {
+
+	sourceIndexes := get_indexes(src)
+	destIndexes := get_indexes(dst)
+
+	count := 0
+	for _, sourceIndex := range sourceIndexes {
+		exists := false
+		for _, destIndex := range destIndexes {
+			if (sourceIndex["name"] == destIndex["name"]) {
+				exists = true
+			}
+		}
+		if (!exists) {
+			i := mongo.IndexModel{
+				Keys:	sourceIndex["key"],
+				Options: options.Index().SetName(sourceIndex["name"].(string)),
+			}
+			_, err := dst.Indexes().CreateOne(context.TODO(), i)
+			if err != nil {
+				fmt.Printf("[DEST] Error creating index: %s\n", sourceIndex["name"])
+				fmt.Println(err)
+			} else {
+				count++
+			}
+		}
+	}
+
+	if (count > 0) {
+		atomic.AddInt64(c.Indexes, int64(count))
+	}
+
 }

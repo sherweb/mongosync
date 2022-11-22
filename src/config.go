@@ -19,7 +19,7 @@ type RootConfig struct {
 	BatchSize int `yaml:"batch_size"`
 	RefreshRate int `yaml:"refresh_rate"`
 	ThresholdForSeparateConnection int `yaml:"threshold_for_separate_connection"`
-	Databases []DBConfig `yaml:"databases"`
+	Databases []*DBConfig `yaml:"databases"`
 }
 
 type DBConfig struct {
@@ -29,7 +29,7 @@ type DBConfig struct {
 	BatchSize int `yaml:"batch_size"`
 	Enabled bool `yaml:"enabled"`
 	UseSeparateConnection bool `yaml:"use_separate_connection"`
-	Collections []ColConfig `yaml:"collections"`
+	Collections []*ColConfig `yaml:"collections"`
 }
 
 type ColConfig struct {
@@ -50,7 +50,7 @@ func GetBaseConfig() RootConfig {
 		BatchSize: 5000,
 		RefreshRate: 50,
 		ThresholdForSeparateConnection: 10000,
-		Databases: []DBConfig{},
+		Databases: []*DBConfig{},
 	}
 }
 
@@ -62,7 +62,7 @@ func GetBaseDBConfig() DBConfig {
 		BatchSize: 0,
 		Enabled: true,
 		UseSeparateConnection: false,
-		Collections: []ColConfig{},
+		Collections: []*ColConfig{},
 	}
 }
 
@@ -182,7 +182,7 @@ func GenerateDBConfig(dbName string, conn *mongo.Client) DBConfig {
 	for _, col := range cols {
 		colConfig := GenerateColConfig(col, dbName, conn)
 		dbConfig.EstimatedCount += colConfig.TotalCount
-		dbConfig.Collections = append(dbConfig.Collections, colConfig)
+		dbConfig.Collections = append(dbConfig.Collections, &colConfig)
 	}
 	return dbConfig
 }
@@ -196,7 +196,7 @@ func GenerateAllConfig(cmd *cobra.Command, sourceUri string, destinationUri stri
 
 	for _, db := range dbs {
 		dbConfig := GenerateDBConfig(db, conn)
-		config.Databases = append(config.Databases, dbConfig)
+		config.Databases = append(config.Databases, &dbConfig)
 	}
 
 	return config
