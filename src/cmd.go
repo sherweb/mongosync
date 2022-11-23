@@ -39,6 +39,7 @@ var generateConfigCmd = &cobra.Command{
 }
 
 func init() {
+	rootCmd.Flags().Bool("profile", false, "enable profiling")
 	rootCmd.AddCommand(copyCmd)
 	rootCmd.AddCommand(generateConfigCmd)
 	copyCmd.Flags().StringP("source", "s", "", "source mongodb instance")

@@ -3,6 +3,7 @@ package src
 import (
 	"fmt"
 	"os"
+	"runtime/pprof"
 
 	"github.com/spf13/cobra"
 )
@@ -10,6 +11,16 @@ import (
 
 
 func copy_handler(cmd *cobra.Command, args []string) {
+	if (cmd.Flags().Changed("profile")) {
+		f, perr := os.Create("cpu.pprof")
+		if perr != nil {
+			panic(perr)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
+
 	sourceUri, _ := cmd.Flags().GetString("source")
 	destinationUri, _ := cmd.Flags().GetString("destination")
 	fmt.Printf("Connecting to source mongodb instance: %s\n", sourceUri)
