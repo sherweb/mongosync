@@ -1,0 +1,68 @@
+
+# Source and destinations, enter yours here
+source: mongodb://USERNAME:PASSWORD@127.0.0.1:27017
+destination: mongodb://USERNAME:PASSWORD@127.0.0.1:27018
+
+# The max_workers configuration argument is the total amount of simultaneous DISTINCT collection workers will run at the same time
+# They'll all run on a different collection, so if you set 16 here, up to 16 collections will be processed simultaneously
+# Each of those individual collection worker can run in either "single" or "multi-threaded mode", but this depends on collection-specific configuration
+max_workers: 16
+
+# The batch_size configuration argument is the number of items to batch together when writing to the destination
+# This one is present at every level, "root", database and collection
+# The precedence is always col > db > root, so if this option at this level is set, it will not override others, except if they're nil or 0
+batch_size: 10000
+
+# The refresh_rate configuration argument is how long to wait before refreshing the on-screen counters (in-milliseconds)
+# If you set 500, the StatusWorker will wait 500 milliseconds before updating the on-screen counters
+refresh_rate: 50
+
+# Setting this to true will skip ALL exist and diff-compare operation and will instead force insert all documents, can be useful when running this for the first time
+# It uses the same precendence as batch_size, col > db > root
+no_find: false 
+
+# This threshold_for_separate_connection configuration arguments sets at what point does a collection gets a brand-new and unique collection to the database
+# Effects of this have been untested as of yet, but I expect they improve performance somewhat (especially when dealing with multiple large collections)
+threshold_for_separate_connection: 50000
+
+
+databases:
+    - name: contoso #name of the source database
+      rename_to: "" #if this is set to a non-empty string, the remote database will be renamed to this value
+      no_find: false # setting this to true will skip ALL exist and diff-compare operation and will instead force insert all documents, can be useful when running this for the first time
+      estimated_count: 50189533 # Sum of all child collections
+      batch_size: 0 # batch_size override
+      enabled: true 
+      #
+      # For this use_separate_connection, if this is set to true, the whole DB will get it's own connection
+      # All childrens will get spawned off that connection, except if they reach the treshold, in which case, they'll get ANOTHER connection
+      use_separate_connection: false
+      collections:
+        - name: users
+          rename_to: "" # if this is set to a non-empty string, it will rename the remote collection to this
+          no_find: false # setting this to true will skip ALL exist and diff-compare operation and will instead force insert all documents, can be useful when running this for the first time
+          total_count: 108906 # Estimated count, you could change that if you want or remove it, but it may break things ¯\_(ツ)_/¯
+          batch_size: 0
+          copy_indexes: true # Should we copy indexes ?
+          enabled: true # should we process this db ?
+          source_batch_size: 0 # Used to change the mongo options for the source batch size, would recommend not including or leaving @ 0
+          use_separate_connection: false
+          #
+          # The use_multiple_workers switch is pretty cool, this allows the processing of documents inside a single collections to be fully concurrent
+          # ******WARNING*****
+          # *** Using this will result in your documents not being ordered the exact same way in the destination database
+          # *** If this is important to some people, well, don't do that
+          # *** If you don't care or you're not sure, use it! It massively improves performances. MASSIVELY
+          # ******************
+          # Using this will MASSIVELY improve performances when copying very large collections
+          # The single-thread version of this (setting this to false) caps at about 3000 Items / s, which is fine for < 1mil collection but gets really slow beyond this
+          # On a test setup that includes: 
+          #  - 1x 8C/16Gb VM to run mongosync
+          #  - 2x 16C/64GB RAM mongodb VMs, 1 Source 1 Destination
+          # This, paired with worker_count: 64 runs at around 65,000 Items / Second, making a multi-hour process take not a long time at all
+          # Of course, when doing multi-core copy, sometimes network latency will be the biggest factor
+          # Note: the worker_count argument should NOT match your number of physical cores as you can usually have way more workers than cores
+          # since the longest thing a worker does is waiting for the destination host network
+          use_multiple_workers: true
+          worker_count: 64 # Number of simultaneous workers to run exists_match with, set this to whatever gives you the best performance
+          max_docs_in_memory: 500000 # Number of documents to prefetch and enqueue when running multiple workers. Set this to something that make sense for you. (If your documents are very large, I would recommend lowering this value)
