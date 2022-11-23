@@ -110,9 +110,11 @@ func (cw *ColCopyWorker) CopyMultiThread(c *Counters, cur *mongo.Cursor) {
 			time.Sleep(time.Second * 1) //safety sleep
 			slept = true
 		} else if (queue.GetLen() == 0 && slept) {
-			for _, c := range chans {
-				c <- true
-			}
+			go func() {
+				for _, c := range chans {
+					c <- true
+				}
+			}()
 			doneProcessing = true
 		}
 	}
@@ -153,15 +155,21 @@ func (cw *ColCopyWorker) CopyMultiWorker(c *Counters, q *goconcurrentqueue.Fixed
 				if err == nil {
 					atomic.AddInt64(c.SourceItems, 1)
 					dequeued = true
-					exists, match := doc_exists_and_match(cw.DST, elem.(bson.D));
-					if !exists && !match {
+					if cfg.NoFind {
 						models = append(models, mongo.NewInsertOneModel().SetDocument(elem))
 						batchCount++
 						totalCount++
-					} else if exists && !match {
-						models = append(models, mongo.NewReplaceOneModel().SetFilter(bson.D{{Key: "_id", Value: elem.(bson.D).Map()["_id"]}}).SetReplacement(elem))
-						batchCount++
-						totalCount++
+					} else {
+						exists, match := doc_exists_and_match(cw.DST, elem.(bson.D));
+						if !exists && !match {
+							models = append(models, mongo.NewInsertOneModel().SetDocument(elem))
+							batchCount++
+							totalCount++
+						} else if exists && !match {
+							models = append(models, mongo.NewReplaceOneModel().SetFilter(bson.D{{Key: "_id", Value: elem.(bson.D).Map()["_id"]}}).SetReplacement(elem))
+							batchCount++
+							totalCount++
+						}
 					}
 
 					if batchCount >= cfg.BatchSize {

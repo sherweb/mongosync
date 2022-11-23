@@ -18,6 +18,7 @@ type RootConfig struct {
 	MaxWorkers	int `yaml:"max_workers"`
 	BatchSize int `yaml:"batch_size"`
 	RefreshRate int `yaml:"refresh_rate"`
+	NoFind bool `yaml:"no_find"`
 	ThresholdForSeparateConnection int `yaml:"threshold_for_separate_connection"`
 	Databases []*DBConfig `yaml:"databases"`
 }
@@ -28,6 +29,7 @@ type DBConfig struct {
 	EstimatedCount int `yaml:"estimated_count"`
 	BatchSize int `yaml:"batch_size"`
 	Enabled bool `yaml:"enabled"`
+	NoFind bool `yaml:"no_find"`
 	UseSeparateConnection bool `yaml:"use_separate_connection"`
 	Collections []*ColConfig `yaml:"collections"`
 }
@@ -44,6 +46,7 @@ type ColConfig struct {
 	UseMultipleWorkers bool `yaml:"use_multiple_workers"`
 	WorkerCount int `yaml:"worker_count"`
 	MaxDocsInMemory int `yaml:"max_docs_in_memory"`
+	NoFind bool `yaml:"no_find"`
 }
 
 func GetBaseConfig() RootConfig {
@@ -54,6 +57,7 @@ func GetBaseConfig() RootConfig {
 		BatchSize: 5000,
 		RefreshRate: 50,
 		ThresholdForSeparateConnection: 10000,
+		NoFind: false,
 		Databases: []*DBConfig{},
 	}
 }
@@ -65,6 +69,7 @@ func GetBaseDBConfig() DBConfig {
 		EstimatedCount: 0,
 		BatchSize: 0,
 		Enabled: true,
+		NoFind: false,
 		UseSeparateConnection: false,
 		Collections: []*ColConfig{},
 	}
@@ -80,6 +85,7 @@ func GetBaseColConfig() ColConfig {
 		CopyIndexes: true,
 		UseSeparateConnection: false,
 		Enabled: true,
+		NoFind: false,
 		UseMultipleWorkers: false,
 		WorkerCount: 0,
 		MaxDocsInMemory: 500000,
@@ -119,6 +125,18 @@ func ReadAndParseConfig(path string) RootConfig {
 				if (ob >= 1) {
 					col.BatchSize = ob
 				}
+
+				onf := col.NoFind
+				if cfg.NoFind {
+					col.NoFind = cfg.NoFind
+				}
+				if db.NoFind {
+					col.NoFind = db.NoFind
+				}
+				if onf {
+					col.NoFind = onf
+				}
+
 			}
 			if (db.EstimatedCount > cfg.ThresholdForSeparateConnection) {
 				db.UseSeparateConnection = true
