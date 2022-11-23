@@ -139,7 +139,9 @@ func Copy(cfg *RootConfig, dbc *DBConnector) {
 				BatchSize: col.BatchSize,
 			}
 
-			queue.Workers = append(queue.Workers, cw)
+			if col.Enabled {
+				queue.Workers = append(queue.Workers, cw)
+			}
 
 		}
 
