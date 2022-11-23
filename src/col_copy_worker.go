@@ -86,7 +86,7 @@ func (cw *ColCopyWorker) CopyMultiThread(c *Counters, cur *mongo.Cursor) {
 	}
 
 	for cur.Next(context.TODO()) {
-		atomic.AddInt64(c.SourceItems, 1)
+		atomic.AddInt64(c.CachedItems, 1)
 		var elem bson.D
 		err := cur.Decode(&elem)
 		if err != nil {
@@ -150,6 +150,7 @@ func (cw *ColCopyWorker) CopyMultiWorker(c *Counters, q *goconcurrentqueue.Fixed
 
 				elem, err := q.DequeueOrWaitForNextElement()
 				if err == nil {
+					atomic.AddInt64(c.SourceItems, 1)
 					dequeued = true
 					exists, match := doc_exists_and_match(cw.DST, elem.(bson.D));
 					if !exists && !match {
