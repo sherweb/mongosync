@@ -145,33 +145,36 @@ func (cw *ColCopyWorker) CopyMultiWorker(c *Counters, q *goconcurrentqueue.Fixed
 			}
 			return
 		default:
-			elem, err := q.DequeueOrWaitForNextElement()
-			if err != nil {
-				fmt.Println("Copy Multi Worker had a queue error")
-				panic(err)
-			}
+			dequeued := false
+			for !dequeued {
 
-			exists, match := doc_exists_and_match(cw.DST, elem.(bson.D));
-			if !exists && !match {
-				models = append(models, mongo.NewInsertOneModel().SetDocument(elem))
-				batchCount++
-				totalCount++
-			} else if exists && !match {
-				models = append(models, mongo.NewReplaceOneModel().SetFilter(bson.D{{Key: "_id", Value: elem.(bson.D).Map()["_id"]}}).SetReplacement(elem))
-				batchCount++
-				totalCount++
-			}
+				elem, err := q.DequeueOrWaitForNextElement()
+				if err == nil {
+					dequeued = true
+					exists, match := doc_exists_and_match(cw.DST, elem.(bson.D));
+					if !exists && !match {
+						models = append(models, mongo.NewInsertOneModel().SetDocument(elem))
+						batchCount++
+						totalCount++
+					} else if exists && !match {
+						models = append(models, mongo.NewReplaceOneModel().SetFilter(bson.D{{Key: "_id", Value: elem.(bson.D).Map()["_id"]}}).SetReplacement(elem))
+						batchCount++
+						totalCount++
+					}
 
-			if batchCount >= cfg.BatchSize {
-				atomic.AddInt64(c.CopyingItems, int64(batchCount))
-				opts := options.BulkWrite().SetOrdered(true)
-				_, ierr := cw.DST.BulkWrite(context.TODO(), models, opts)
-				if ierr != nil {
-					fmt.Println(ierr)
+					if batchCount >= cfg.BatchSize {
+						atomic.AddInt64(c.CopyingItems, int64(batchCount))
+						opts := options.BulkWrite().SetOrdered(true)
+						_, ierr := cw.DST.BulkWrite(context.TODO(), models, opts)
+						if ierr != nil {
+							fmt.Println(ierr)
+						}
+						atomic.AddInt64(c.CopiedItems, int64(batchCount))
+						models = []mongo.WriteModel{}
+						batchCount = 0
+					}
 				}
-				atomic.AddInt64(c.CopiedItems, int64(batchCount))
-				models = []mongo.WriteModel{}
-				batchCount = 0
+				
 			}
 
 		}
