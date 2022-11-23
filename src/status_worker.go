@@ -25,7 +25,7 @@ func StatusWorker(c *Counters, quit chan bool, refresh_rate int, state *WorkerSt
 		default:
 			t := time.Since(start).Seconds()
 
-			if c.CachedItems > 0 {
+			if *c.CachedItems > int64(0) {
 				fmt.Printf("Active Workers: %d/%d, Indexes: %d, TotalCachedItems: %d, SourceItems: %d (%02.f/s), CopyingItems: %d, CopiedItems: %d (%02.f/s)\r", state.Active, cfg.MaxWorkers, *c.Indexes, c.CachedItems,*c.SourceItems, (float64(*c.SourceItems) / t), (*c.CopyingItems - *c.CopiedItems), *c.CopiedItems, (float64(*c.CopiedItems) / t))
 			} else {
 				fmt.Printf("Active Workers: %d/%d, Indexes: %d, SourceItems: %d (%02.f/s), CopyingItems: %d, CopiedItems: %d (%02.f/s)\r", state.Active, cfg.MaxWorkers, *c.Indexes, *c.SourceItems, (float64(*c.SourceItems) / t), (*c.CopyingItems - *c.CopiedItems), *c.CopiedItems, (float64(*c.CopiedItems) / t))
