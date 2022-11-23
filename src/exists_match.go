@@ -4,11 +4,11 @@ import (
 	"context"
 	"reflect"
 
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 func doc_exists_and_match(dst *mongo.Collection, doc bson.D) (bool, bool) {
-	q := bson.D{{"_id", doc.Map()["_id"]}}
+	q := bson.D{{Key: "_id", Value: doc.Map()["_id"]}}
 	
 	res := dst.FindOne(context.TODO(), q)
 	if res.Err() != nil {
