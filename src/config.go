@@ -41,6 +41,9 @@ type ColConfig struct {
 	Enabled bool `yaml:"enabled"`
 	SourceBatchSize int `yaml:"source_batch_size"`
 	UseSeparateConnection bool `yaml:"use_separate_connection"`
+	UseMultipleWorkers bool `yaml:"use_multiple_workers"`
+	WorkerCount int `yaml:"worker_count"`
+	MaxDocsInMemory int `yaml:"max_docs_in_memory"`
 }
 
 func GetBaseConfig() RootConfig {
@@ -77,6 +80,9 @@ func GetBaseColConfig() ColConfig {
 		CopyIndexes: true,
 		UseSeparateConnection: false,
 		Enabled: true,
+		UseMultipleWorkers: false,
+		WorkerCount: 0,
+		MaxDocsInMemory: 500000,
 	}
 }
 

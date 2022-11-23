@@ -8,6 +8,7 @@ require (
 )
 
 require (
+	github.com/enriquebris/goconcurrentqueue v0.7.0 // indirect
 	github.com/fsnotify/fsnotify v1.6.0 // indirect
 	github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8 // indirect
 	github.com/golang/snappy v0.0.1 // indirect

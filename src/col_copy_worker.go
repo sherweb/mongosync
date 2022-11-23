@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 	"sync/atomic"
+	"time"
 
+	"github.com/enriquebris/goconcurrentqueue"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -56,10 +58,135 @@ func (cw *ColCopyWorker) Copy(c *Counters) {
 		cur = cursor
 	}
 
+	if (!cfg.UseMultipleWorkers) {
+		cw.CopySingleThread(c, cur)
+	} else {
+		cw.CopyMultiThread(c, cur)
+	}
+
+	
+}
+
+func (cw *ColCopyWorker) CopyMultiThread(c *Counters, cur *mongo.Cursor) {
+	
+	cfg := cw.Config
+	maxInMem := 500000
+
+	if (cfg.MaxDocsInMemory > 0) {
+		maxInMem = cfg.MaxDocsInMemory
+	}
+
+	queue := goconcurrentqueue.NewFixedFIFO(maxInMem)
+
+	chans := make([]chan bool, cfg.WorkerCount)
+
+	for wc := 0; wc < cfg.WorkerCount; wc++ {
+		chans[wc] = make(chan bool)
+		go cw.CopyMultiWorker(c, queue, chans[wc])
+	}
+
+	for cur.Next(context.TODO()) {
+		atomic.AddInt64(c.SourceItems, 1)
+		var elem bson.D
+		err := cur.Decode(&elem)
+		if err != nil {
+			panic(err)
+		}
+		queued := false
+		for !queued {
+			if (queue.GetLen() < maxInMem) {
+				queue.Enqueue(elem)
+				queued = true
+			}
+		}
+	}
+
+	doneProcessing := false 
+	slept := false
+	//Done queuing docs, now wait for workers to finish
+	for !doneProcessing {
+		if (queue.GetLen() == 0 && !slept) {
+			time.Sleep(time.Second * 1) //safety sleep
+			slept = true
+		} else if (queue.GetLen() == 0 && slept) {
+			for _, c := range chans {
+				c <- true
+			}
+			doneProcessing = true
+		}
+	}
+
+	if cfg.CopyIndexes == true {
+		copy_index(cw.SRC, cw.DST, c)
+	}
+	cw.Done = true
+
+}
+
+func (cw *ColCopyWorker) CopyMultiWorker(c *Counters, q *goconcurrentqueue.FixedFIFO, done chan bool) {
+	cfg := cw.Config
+	
 	models := []mongo.WriteModel{}
 	batchCount := 0
 	totalCount := 0
+
+	for {
+		select {
+		case <-done:
+			opts := options.BulkWrite().SetOrdered(true)
+			if (len(models) > 0) {
+				atomic.AddInt64(c.CopyingItems, int64(len(models)))
+				_, ierr := cw.DST.BulkWrite(context.TODO(), models, opts)
+				if ierr != nil {
+					fmt.Println(ierr)
+				}
+				atomic.AddInt64(c.CopiedItems, int64(len(models)))
+			} else {
+			}
+			return
+		default:
+			elem, err := q.DequeueOrWaitForNextElement()
+			if err != nil {
+				fmt.Println("Copy Multi Worker had a queue error")
+				panic(err)
+			}
+
+			exists, match := doc_exists_and_match(cw.DST, elem.(bson.D));
+			if !exists && !match {
+				models = append(models, mongo.NewInsertOneModel().SetDocument(elem))
+				batchCount++
+				totalCount++
+			} else if exists && !match {
+				models = append(models, mongo.NewReplaceOneModel().SetFilter(bson.D{{Key: "_id", Value: elem.(bson.D).Map()["_id"]}}).SetReplacement(elem))
+				batchCount++
+				totalCount++
+			}
+
+			if batchCount >= cfg.BatchSize {
+				atomic.AddInt64(c.CopyingItems, int64(batchCount))
+				opts := options.BulkWrite().SetOrdered(true)
+				_, ierr := cw.DST.BulkWrite(context.TODO(), models, opts)
+				if ierr != nil {
+					fmt.Println(ierr)
+				}
+				atomic.AddInt64(c.CopiedItems, int64(batchCount))
+				models = []mongo.WriteModel{}
+				batchCount = 0
+			}
+
+		}
+	}
+
+
+}
+
+
+func (cw *ColCopyWorker) CopySingleThread(c *Counters, cur *mongo.Cursor) {
+	cfg := cw.Config
 	
+	models := []mongo.WriteModel{}
+	batchCount := 0
+	totalCount := 0
 
 	for cur.Next(context.TODO()) {
 		atomic.AddInt64(c.SourceItems, 1)
@@ -91,7 +218,6 @@ func (cw *ColCopyWorker) Copy(c *Counters) {
 			models = []mongo.WriteModel{}
 			batchCount = 0
 		}
-
 	}
 
 	opts := options.BulkWrite().SetOrdered(true)
@@ -111,7 +237,9 @@ func (cw *ColCopyWorker) Copy(c *Counters) {
 		copy_index(cw.SRC, cw.DST, c)
 	}
 	cw.Done = true
+
 }
+
 
 func copy_index(src *mongo.Collection, dst *mongo.Collection, c *Counters) {
 
