@@ -87,6 +87,7 @@ func Copy(cfg *RootConfig, dbc *DBConnector) {
 			SourceItems:  new(int64),
 			CopyingItems: new(int64),
 			CopiedItems:  new(int64),
+			CachedItems: 	new(int64),
 			Indexes:      new(int64),
 		},
 	}
