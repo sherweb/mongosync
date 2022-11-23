@@ -50,14 +50,7 @@ func init() {
 	copyCmd.Flags().StringP("log-directory", "", "", "directory to store logs")
 	copyCmd.Flags().IntP("batchsize", "b", 1000, "batch size")
 	copyCmd.Flags().BoolP("indexes", "i", false, "copy indexes")
-	err := copyCmd.MarkFlagRequired("source")
-	if err != nil {
-		panic(err)
-	}
-	err = copyCmd.MarkFlagRequired("destination")
-	if err != nil {
-		panic(err)
-	}
+
 }
 
 func Execute() {
