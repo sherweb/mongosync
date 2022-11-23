@@ -39,12 +39,12 @@ var generateConfigCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.Flags().Bool("profile", false, "enable profiling")
 	rootCmd.AddCommand(copyCmd)
 	rootCmd.AddCommand(generateConfigCmd)
 	copyCmd.Flags().StringP("source", "s", "", "source mongodb instance")
 	copyCmd.Flags().StringP("destination", "d", "", "destination mongodb instance")
 	copyCmd.Flags().StringP("config", "c", "", "config file location")
+	copyCmd.Flags().BoolP("profile", "p", false, "profile the execution")
 	generateConfigCmd.Flags().StringP("source", "s", "", "source mongodb instance")
 	generateConfigCmd.Flags().StringP("destination", "d", "", "destination mongodb instance")
 	copyCmd.Flags().StringP("database", "", "", "database to copy")
