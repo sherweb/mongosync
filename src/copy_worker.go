@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/spf13/cobra"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
@@ -74,7 +75,7 @@ func (wq *WorkerQueue) RunWorker(w *ColCopyWorker, c *Counters) {
 	wq.State.mu.Unlock()
 }
 
-func Copy(cfg *RootConfig, dbc *DBConnector) {
+func Copy(cfg *RootConfig, dbc *DBConnector, cmd *cobra.Command) {
 	state := &WorkerState{
 		Active: 0,
 	}
@@ -87,7 +88,6 @@ func Copy(cfg *RootConfig, dbc *DBConnector) {
 			SourceItems:  new(int64),
 			CopyingItems: new(int64),
 			CopiedItems:  new(int64),
-			CachedItems: 	new(int64),
 			Indexes:      new(int64),
 		},
 	}
@@ -150,5 +150,6 @@ func Copy(cfg *RootConfig, dbc *DBConnector) {
 
 	queue.Run(cfg)
 
+	//TODO: Add save-logs
 
 }

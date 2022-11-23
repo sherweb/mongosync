@@ -94,7 +94,6 @@ func (cw *ColCopyWorker) CopyMultiThread(c *Counters, cur *mongo.Cursor) {
 		queued := false
 		for !queued {
 			if (queue.GetLen() < maxInMem) {
-				atomic.AddInt64(c.CachedItems, int64(1))
 				queue.Enqueue(elem)
 				queued = true
 			}

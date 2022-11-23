@@ -20,31 +20,29 @@ func copy_handler(cmd *cobra.Command, args []string) {
 		defer pprof.StopCPUProfile()
 	}
 
-
-	sourceUri, _ := cmd.Flags().GetString("source")
-	destinationUri, _ := cmd.Flags().GetString("destination")
-	fmt.Printf("Connecting to source mongodb instance: %s\n", sourceUri)
-	sourceDB := connect_db(sourceUri)
-	fmt.Printf("Connecting to destination mongodb instance: %s\n", destinationUri)
-	destinationDB := connect_db(destinationUri)
-
 	if !cmd.Flags().Changed("config") {
 		fmt.Println("No config file provided, using command line arguments --config filepath.yml to provide a config file")
-		fmt.Println("If you haven't generate a config file by running monogsync generate-config, you can do it now")
+		fmt.Println("If you haven't generated a config file by running monogsync generate-config, you can do it now")
 		os.Exit(1)
 	}
 
 	configFile, _ := cmd.Flags().GetString("config")
 
 	cfg := ReadAndParseConfig(configFile)
+
+	fmt.Printf("Connecting to source mongodb instance: %s\n", cfg.Source)
+	sourceDB := connect_db(cfg.Source)
+	fmt.Printf("Connecting to destination mongodb instance: %s\n", cfg.Destination)
+	destinationDB := connect_db(cfg.Destination)
+
 	
 	dbc := DBConnector{
-		SourceURI: sourceUri,
-		DestURI:   destinationUri,
+		SourceURI: cfg.Source,
+		DestURI:   cfg.Destination,
 		srcConn:   sourceDB,
 		destConn:  destinationDB,
 	}
 
-	Copy(&cfg, &dbc)
+	Copy(&cfg, &dbc, cmd)
 
 }

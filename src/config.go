@@ -126,6 +126,10 @@ func ReadAndParseConfig(path string) RootConfig {
 					col.BatchSize = ob
 				}
 
+				if col.BatchSize == 0 {
+					col.BatchSize = 5000 //default value
+				}
+
 				onf := col.NoFind
 				if cfg.NoFind {
 					col.NoFind = cfg.NoFind
@@ -135,6 +139,10 @@ func ReadAndParseConfig(path string) RootConfig {
 				}
 				if onf {
 					col.NoFind = onf
+				}
+
+				if col.MaxDocsInMemory == 0 {
+					col.MaxDocsInMemory = 500000 //default value
 				}
 
 			}
