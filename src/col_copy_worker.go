@@ -86,7 +86,6 @@ func (cw *ColCopyWorker) CopyMultiThread(c *Counters, cur *mongo.Cursor) {
 	}
 
 	for cur.Next(context.TODO()) {
-		atomic.AddInt64(c.CachedItems, 1)
 		var elem bson.D
 		err := cur.Decode(&elem)
 		if err != nil {
@@ -97,6 +96,8 @@ func (cw *ColCopyWorker) CopyMultiThread(c *Counters, cur *mongo.Cursor) {
 			if (queue.GetLen() < maxInMem) {
 				queue.Enqueue(elem)
 				queued = true
+				
+				atomic.AddInt64(c.CachedItems, 1)
 			}
 		}
 	}
