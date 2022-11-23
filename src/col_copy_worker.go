@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	"go.mongodb.org/mongo-driver/bson"
+	"github.com/globalsign/mgo/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -74,7 +74,7 @@ func (cw *ColCopyWorker) Copy(c *Counters) {
 			batchCount++
 			totalCount++
 		} else if exists && !match {
-			models = append(models, mongo.NewReplaceOneModel().SetFilter(bson.D{{Key: "_id", Value: elem.Map()["_id"]}}).SetReplacement(elem))
+			models = append(models, mongo.NewReplaceOneModel().SetFilter(bson.D{{"_id", elem.Map()["_id"]}}).SetReplacement(elem))
 			batchCount++
 			totalCount++
 		}
