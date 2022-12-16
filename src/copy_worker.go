@@ -84,6 +84,7 @@ func Copy(cfg *RootConfig, dbc *DBConnector, cmd *cobra.Command) {
 		State: state,
 		Counters: &Counters{
 			DBs:          new(int64),
+			InMemItems: new(int64),
 			Collections:  new(int64),
 			SourceItems:  new(int64),
 			CopyingItems: new(int64),

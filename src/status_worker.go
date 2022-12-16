@@ -8,6 +8,7 @@ import (
 type Counters struct {
 	DBs          *int64
 	Collections  *int64
+	InMemItems  *int64
 	SourceItems  *int64
 	CopyingItems *int64
 	CopiedItems  *int64
@@ -24,7 +25,11 @@ func StatusWorker(c *Counters, quit chan bool, refresh_rate int, state *WorkerSt
 		default:
 			t := time.Since(start).Seconds()
 
-			fmt.Printf("Active Workers: %d/%d, Indexes: %d, SourceItems: %d (%02.f/s), CopyingItems: %d, CopiedItems: %d (%02.f/s)\r", state.Active, cfg.MaxWorkers, *c.Indexes, *c.SourceItems, (float64(*c.SourceItems) / t), (*c.CopyingItems - *c.CopiedItems), *c.CopiedItems, (float64(*c.CopiedItems) / t))
+			if (*c.InMemItems > 0) {
+				fmt.Printf("Active Workers: %d/%d, Indexes: %d, ItemsLoadedInMem: %d, SourceItems: %d (%02.f/s), CopyingItems: %d, CopiedItems: %d (%02.f/s)\r", state.Active, cfg.MaxWorkers, *c.Indexes, *c.SourceItems, *c.InMemItems,(float64(*c.SourceItems) / t), (*c.CopyingItems - *c.CopiedItems), *c.CopiedItems, (float64(*c.CopiedItems) / t))
+			} else {
+				fmt.Printf("Active Workers: %d/%d, Indexes: %d, SourceItems: %d (%02.f/s), CopyingItems: %d, CopiedItems: %d (%02.f/s)\r", state.Active, cfg.MaxWorkers, *c.Indexes, *c.SourceItems, (float64(*c.SourceItems) / t), (*c.CopyingItems - *c.CopiedItems), *c.CopiedItems, (float64(*c.CopiedItems) / t))
+			}
 		
 			time.Sleep(time.Duration(refresh_rate) * time.Millisecond)
 		}

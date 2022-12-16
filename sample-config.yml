@@ -23,7 +23,7 @@ no_find: false
 
 # This threshold_for_separate_connection configuration arguments sets at what point does a collection gets a brand-new and unique collection to the database
 # Effects of this have been untested as of yet, but I expect they improve performance somewhat (especially when dealing with multiple large collections)
-threshold_for_separate_connection: 50000
+threshold_for_separate_connection: 150000
 
 
 databases:

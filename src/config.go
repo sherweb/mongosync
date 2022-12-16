@@ -37,6 +37,7 @@ type DBConfig struct {
 type ColConfig struct {
 	Name string `yaml:"name"`
 	RenameTo string `yaml:"rename_to"`
+	InMemory bool `yaml:"in_memory"`
 	TotalCount int `yaml:"total_count"`
 	BatchSize int `yaml:"batch_size"`
 	CopyIndexes bool `yaml:"copy_indexes"`
@@ -79,6 +80,7 @@ func GetBaseColConfig() ColConfig {
 	return ColConfig{
 		Name: "",
 		RenameTo: "",
+		InMemory: false,
 		TotalCount: 0,
 		BatchSize: 0,
 		SourceBatchSize: 0,

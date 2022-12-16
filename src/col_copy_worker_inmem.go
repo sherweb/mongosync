@@ -3,6 +3,7 @@ package src
 import (
 	"context"
 	"fmt"
+	"reflect"
 	"sync/atomic"
 	"time"
 
@@ -12,84 +13,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-type ColCopyWorker struct {
-	SRC *mongo.Collection
-	SRCDocCount int64
-	DST *mongo.Collection
-	DBName string
-	ColName string
-	Done bool
-	Logs []string
-	Config *ColConfig
-	BatchSize int
-}
-
-func (cw *ColCopyWorker) ColCopyWorker() {
-	cw.Done = false
-}
-
-func (cw *ColCopyWorker) GetDocCount(db *mongo.Database) int64 {
-	count, err := db.Collection(cw.ColName).EstimatedDocumentCount(context.TODO())
-	if err != nil {
-		panic(err)
-	}
-	cw.SRCDocCount = count
-	return count
-}
 
 
-func (cw *ColCopyWorker) Copy(c *Counters) {
-	cfg := cw.Config
-
-	var cur *mongo.Cursor
-
-	if !cw.Config.InMemory {
-
-		if (cw.Config.SourceBatchSize > 0) {
-			options := options.Find().SetBatchSize(int32(cw.Config.SourceBatchSize))
-			cursor, err := cw.SRC.Find(context.TODO(), bson.D{}, options)
-			if err != nil {
-				panic(err)
-			}
-			cur = cursor
-		} else {
-			cursor, err := cw.SRC.Find(context.TODO(), bson.D{})
-			if err != nil {
-				panic(err)
-			}
-			cur = cursor
-		}
-	
-		if (!cfg.UseMultipleWorkers) {
-			cw.CopySingleThread(c, cur)
-		} else {
-			cw.CopyMultiThread(c, cur)
-		}
-	
-
-	} else {
-		sourcecursor, err := cw.SRC.Find(context.TODO(), bson.D{})
-		if err != nil {
-			panic(err)
-		}
-
-		destcursor, err := cw.SRC.Find(context.TODO(), bson.D{})
-		if err != nil {
-			panic(err)
-		}
-
-		if (!cfg.UseMultipleWorkers) {
-			cw.CopySingleThread(c, sourcecursor)
-		} else {
-			cw.CopyMultiThreadInMem(c, sourcecursor, destcursor)
-		}	
-
-	}
-
-	
-}
-
-func (cw *ColCopyWorker) CopyMultiThread(c *Counters, cur *mongo.Cursor) {
+func (cw *ColCopyWorker) CopyMultiThreadInMem(c *Counters, cur *mongo.Cursor, dcur *mongo.Cursor) {
 	
 	cfg := cw.Config
 	maxInMem := 500000
@@ -101,6 +27,20 @@ func (cw *ColCopyWorker) CopyMultiThread(c *Counters, cur *mongo.Cursor) {
 	queue := goconcurrentqueue.NewFixedFIFO(maxInMem)
 
 	chans := make([]chan bool, cfg.WorkerCount)
+
+	dstMap := make(map[string]bson.D)
+
+	//Load in memory
+	for dcur.Next(context.TODO()) {
+		var elem bson.D
+		err := dcur.Decode(&elem)
+		if err != nil {
+			panic(err)
+		}		
+
+		dstMap[elem.Map()["_id"].(string)] = elem
+		atomic.AddInt64(c.InMemItems, 1)
+	}
 
 	for wc := 0; wc < cfg.WorkerCount; wc++ {
 		chans[wc] = make(chan bool)
@@ -146,7 +86,7 @@ func (cw *ColCopyWorker) CopyMultiThread(c *Counters, cur *mongo.Cursor) {
 
 }
 
-func (cw *ColCopyWorker) CopyMultiWorker(c *Counters, q *goconcurrentqueue.FixedFIFO, done chan bool) {
+func (cw *ColCopyWorker) CopyMultiWorkerInMem(c *Counters, q *goconcurrentqueue.FixedFIFO, dstMap *map[string]bson.D, done chan bool) {
 	cfg := cw.Config
 	
 	models := []mongo.WriteModel{}
@@ -180,16 +120,21 @@ func (cw *ColCopyWorker) CopyMultiWorker(c *Counters, q *goconcurrentqueue.Fixed
 						batchCount++
 						totalCount++
 					} else {
-						exists, match := doc_exists_and_match(cw.DST, elem.(bson.D));
-						if !exists && !match {
+
+						if v, ok := (*dstMap)[elem.(bson.D).Map()["_id"].(string)]; ok {
+							//Item found
+							if !reflect.DeepEqual(v, elem) {
+								models = append(models, mongo.NewReplaceOneModel().SetFilter(bson.D{{Key: "_id", Value: elem.(bson.D).Map()["_id"]}}).SetReplacement(elem))
+								batchCount++
+								totalCount++
+							}
+						} else {
+							//Item not found
 							models = append(models, mongo.NewInsertOneModel().SetDocument(elem))
 							batchCount++
 							totalCount++
-						} else if exists && !match {
-							models = append(models, mongo.NewReplaceOneModel().SetFilter(bson.D{{Key: "_id", Value: elem.(bson.D).Map()["_id"]}}).SetReplacement(elem))
-							batchCount++
-							totalCount++
 						}
+
 					}
 
 					if batchCount >= cfg.BatchSize {
@@ -214,7 +159,7 @@ func (cw *ColCopyWorker) CopyMultiWorker(c *Counters, q *goconcurrentqueue.Fixed
 }
 
 
-func (cw *ColCopyWorker) CopySingleThreadInMem(c *Counters, cur *mongo.Cursor) {
+func (cw *ColCopyWorker) CopySingleThread(c *Counters, cur *mongo.Cursor) {
 	cfg := cw.Config
 	
 	models := []mongo.WriteModel{}
@@ -274,3 +219,36 @@ func (cw *ColCopyWorker) CopySingleThreadInMem(c *Counters, cur *mongo.Cursor) {
 }
 
 
+func copy_index(src *mongo.Collection, dst *mongo.Collection, c *Counters) {
+
+	sourceIndexes := get_indexes(src)
+	destIndexes := get_indexes(dst)
+
+	count := 0
+	for _, sourceIndex := range sourceIndexes {
+		exists := false
+		for _, destIndex := range destIndexes {
+			if (sourceIndex["name"] == destIndex["name"]) {
+				exists = true
+			}
+		}
+		if (!exists) {
+			i := mongo.IndexModel{
+				Keys:	sourceIndex["key"],
+				Options: options.Index().SetName(sourceIndex["name"].(string)),
+			}
+			_, err := dst.Indexes().CreateOne(context.TODO(), i)
+			if err != nil {
+				fmt.Printf("[DEST] Error creating index: %s\n", sourceIndex["name"])
+				fmt.Println(err)
+			} else {
+				count++
+			}
+		}
+	}
+
+	if (count > 0) {
+		atomic.AddInt64(c.Indexes, int64(count))
+	}
+
+}
