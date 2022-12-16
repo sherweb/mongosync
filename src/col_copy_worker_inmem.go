@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -30,17 +31,27 @@ func (cw *ColCopyWorker) CopyMultiThreadInMem(c *Counters, cur *mongo.Cursor, dc
 
 	dstMap := make(map[string]bson.D)
 
-	//Load in memory
-	for dcur.Next(context.TODO()) {
-		var elem bson.D
-		err := dcur.Decode(&elem)
-		if err != nil {
-			panic(err)
-		}		
+	wg := sync.WaitGroup{}
 
-		dstMap[elem.Map()["_id"].(string)] = elem
-		atomic.AddInt64(c.InMemItems, 1)
+	for wc := 0; wc < cfg.WorkerCount; wc++ {
+		go func() {
+			wg.Add(1)
+			for dcur.Next(context.TODO()) {
+				var elem bson.D
+				err := dcur.Decode(&elem)
+				if err != nil {
+					panic(err)
+				}		
+		
+				dstMap[elem.Map()["_id"].(string)] = elem
+				atomic.AddInt64(c.InMemItems, 1)
+			}
+		
+		}()
+
 	}
+
+	wg.Wait()
 
 	for wc := 0; wc < cfg.WorkerCount; wc++ {
 		chans[wc] = make(chan bool)
