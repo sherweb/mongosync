@@ -168,7 +168,7 @@ func SaveConfig(cfg RootConfig) {
 			panic(err)
 	}
 
-	err2 := ioutil.WriteFile("config.yml", data, 0)
+	err2 := ioutil.WriteFile("config.yml", data, 0644)
 
 	if err2 != nil {
 
