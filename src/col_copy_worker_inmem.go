@@ -34,8 +34,8 @@ func (cw *ColCopyWorker) CopyMultiThreadInMem(c *Counters, cur *mongo.Cursor, dc
 	wg := sync.WaitGroup{}
 
 	for wc := 0; wc < cfg.WorkerCount; wc++ {
+		wg.Add(1)
 		go func() {
-			wg.Add(1)
 			for dcur.Next(context.TODO()) {
 				var elem bson.D
 				err := dcur.Decode(&elem)
