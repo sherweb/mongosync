@@ -73,7 +73,8 @@ func (cw *ColCopyWorker) Copy(c *Counters) {
 			panic(err)
 		}
 
-		destcursor, err := cw.SRC.Find(context.TODO(), bson.D{})
+		options := options.Find().SetBatchSize(int32(5000000))
+		destcursor, err := cw.DST.Find(context.TODO(), bson.D{}, options)
 		if err != nil {
 			panic(err)
 		}
