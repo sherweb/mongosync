@@ -1,7 +1,6 @@
 package src
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -201,12 +200,6 @@ func GenerateConfig(cmd *cobra.Command, sourceUri string, destinationUri string)
 func GenerateColConfig(colName string, dbName string, conn *mongo.Client) ColConfig {
 	colConfig := GetBaseColConfig()
 	colConfig.Name = colName
-	count, err := conn.Database(dbName).Collection(colName).EstimatedDocumentCount(context.Background())
-	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
-	}
-	colConfig.TotalCount = int(count)
 	return colConfig
 }
 
@@ -217,7 +210,6 @@ func GenerateDBConfig(dbName string, conn *mongo.Client) DBConfig {
 	cols := get_collections(dbName, conn)
 	for _, col := range cols {
 		colConfig := GenerateColConfig(col, dbName, conn)
-		dbConfig.EstimatedCount += colConfig.TotalCount
 		dbConfig.Collections = append(dbConfig.Collections, &colConfig)
 	}
 	return dbConfig
